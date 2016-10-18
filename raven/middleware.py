@@ -44,6 +44,7 @@ class ClosingIterator(Iterator):
         self.sentry = sentry
         self.environ = environ
         self.iterable = iter(iterable)
+        self.iterable_close = getattr(iterable, 'close', None)
         self.closed = False
 
     def __iter__(self):
@@ -65,9 +66,9 @@ class ClosingIterator(Iterator):
         if self.closed:
             return
         try:
-            if hasattr(self.iterable, 'close'):
+            if self.iterable_close:
                 with common_exception_handling(self.environ, self.sentry):
-                    self.iterable.close()
+                    self.iterable_close()
         finally:
             self.sentry.client.context.clear()
             self.sentry.client.transaction.clear()

@@ -62,6 +62,19 @@ class SimpleIteratable(Iterator):
         self.closed = True
 
 
+class YieldingIterable(Iterator):
+    def __init__(self):
+        self.closed = False
+        self.items = ['a']
+
+    def __iter__(self):
+        for item in self.items:
+            yield item
+
+    def close(self):
+        self.closed = True
+
+
 class ExampleApp(object):
     def __init__(self, iterable):
         self.iterable = iterable
@@ -167,6 +180,16 @@ class MiddlewareTestCase(TestCase):
 
     def test_close(self):
         iterable = SimpleIteratable()
+        app = ExampleApp(iterable)
+        middleware = Sentry(app, client=self.client)
+
+        response = middleware(self.request.environ, lambda *args: None)
+        list(response)  # exhaust iterator
+        response.close()
+        self.assertTrue(iterable.closed, True)
+
+    def test_close_yielding_iterable(self):
+        iterable = YieldingIterable()
         app = ExampleApp(iterable)
         middleware = Sentry(app, client=self.client)
 
